@@ -29,6 +29,7 @@ class ElevatorController {
   makeRequest(floorNum, direction) {
     // find available elevator per instructions
     // dummy code will just pull the first elevator
+    // TODO: Need a real algorithm here
     let e = this.availableElevators()[0];
 
     // dispatch to elevator
@@ -38,7 +39,7 @@ class ElevatorController {
   /**
    * Find list of available elevators
    */
-  availabileElevators() {
+  availableElevators() {
     return this.elevators.filter(e => e.isActive());
   }
 }
@@ -53,9 +54,10 @@ class Elevator {
   Elevator(controller) {
     this.controller = controller;
     this.inService = true;
-    this.callRequests = [];
-    this.curFloor = null;
+    this.callRequests = [];  // TODO: I think we can remove this and just check the elevators for call requests?
+    this.curFloor = 1;
     this.direction = null;
+    this.selections = new Set();
   }
 
   /**
@@ -75,18 +77,90 @@ class Elevator {
     if(curFloor == floorNum && (this.direction == null || this.direction == direction)) {
       open();
     }
-    else if(!hasCallRequest()) {
+    else if(!hasCallRequest(floorNum, direction)) {
       // add the request if we don't already have it
       this.callRequests[this.callRequests.length] = {floorNum, direction};
     }
   }
 
   /**
+   * Remove call request
+   * @param floorNum
+   * @param direction
+   */
+  removeCallRequest(floorNum, direction) {
+    // TODO: implement this
+  }
+
+  /**
    * Check if we have a matching call request
    */
   hasCallRequest(floorNum, direction) {
-
+    for(let i=0; i<this.callRequests.length; i++) {
+      if(this.callRequests[i].floorNum == floorNum && this.callRequests[i].direction == direction) {
+        return true;
+      }
+    }
+    return false;
   }
+
+  /**
+   * Move the elevator up a floor (if we can)
+   */
+  moveUp() {
+    if(this.curFloor >= this.controller.numFloors) {
+      // can't go up
+      this.direction = 'down';
+    } else {
+      this.curFloor++;
+      this.direction = 'up';
+    }
+    this.processFloor();
+  }
+
+  /**
+   * Move the elevator down a floor (if we can)
+   */
+  moveDown() {
+    if(this.curFloor == 1) {
+      // can't go down
+      this.direction = 'up';
+    } else {
+      this.curFloor--;
+      this.direction = 'down';
+    }
+    this.processFloor();
+  }
+
+  /**
+   * Add selected floor for this elevator
+   * @param floorNum
+   */
+  addSelection(floorNum) {
+    this.selections.add(floorNum);
+  }
+
+  removeSelection(floorNum) {
+    this.selections.remove(floorNum);
+  }
+
+  /**
+   * Handle actions on the floor we just reached (if any actions necessary)
+   * Initiate move to next floor when done (if applicable)
+   */
+  processFloor() {
+    let shouldOpen = false;
+    if(this.hasCallRequest(this.curFloor, this.direction)) {
+      shouldOpen = true;
+      this.removeCallRequest(this.curFloor, this.direction);
+    }
+    if(this.hasSelection(this.curFloor)) {
+      shouldOpen = true;
+      this.removeSelection(this.curFloor);
+    }
+  }
+
+
 
 }
 
