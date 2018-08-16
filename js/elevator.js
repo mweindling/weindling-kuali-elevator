@@ -9,11 +9,6 @@ class ElevatorController {
 
     this.numFloors = numFloors;
 
-    // initialize call requests (empty)
-    // this is an array of objects in the form {floorIdx:int}, direction:'up|down'}
-    // unclear if a call should indicate direction... assuming they do for now
-    this.callRequests = [];
-
     // initialize elevators
     this.elevators = [];
     for (let n = 1; n <= numElevators; n++) {
@@ -30,18 +25,29 @@ class ElevatorController {
   makeRequest(floorNum, direction) {
     // find available elevator per instructions
     // dummy code will just pull the first elevator
+    let availableElevators = this.availableElevators();
+    if(availableElevators.length == 0) {
+      console.log('No available elevators...');
+      return;
+    }
+
+    // locate elevator closest (consider direction as well)
     // TODO: Need a real algorithm here
-    let e = this.availableElevators()[0];
+    let elevator =  availableElevators[0];
 
     // dispatch to elevator
-    e.requestCall(floorNum, direction);
+    elevator.requestCall(floorNum, direction);
   }
 
   /**
    * Find list of available elevators
    */
   availableElevators() {
-    return this.elevators.filter(e => e.isActive());
+    return this.elevators.filter(e => e.isInService());
+  }
+
+  beforeProcessFloor(elevator) {
+    // TODO: check if there are pending calls to this floor (so we can intercept since the elevator is there anyway)
   }
 }
 
@@ -52,17 +58,19 @@ class ElevatorController {
  */
 class Elevator {
 
-  const maintenanceLimit = 100;
+  const MAINTENANCE_LIMIT = 100;
+  const DOOR_OPEN_TIME_MS = 10000;
 
   Elevator(controller, id) {
     this.id = id;
     this.controller = controller;
     this.inService = true;
-    this.callRequests = [];  // TODO: I think we can remove this and just check the elevators for call requests?
+    this.callRequests = [];
     this.curFloor = 1;
     this.direction = null;
     this.selections = new Set();
     this.movementCount = 0;
+    this.doorOpen = true;
   }
 
   /**
@@ -80,7 +88,7 @@ class Elevator {
   requestCall(floorNum, direction) {
     // just open if we are already on this floor (and direction matches, or no direction)
     if(curFloor == floorNum && (this.direction == null || this.direction == direction)) {
-      open();
+      this.open();
     }
     else if(!hasCallRequest(floorNum, direction)) {
       // add the request if we don't already have it
@@ -110,6 +118,7 @@ class Elevator {
   }
 
   move(dir) {
+    this.close();
     if(dir == 'up') {
       this.moveUp();
     }
@@ -153,7 +162,8 @@ class Elevator {
    */
   tickMovement() {
     this.movementCount++;
-    if(this.movementCount >= maintenanceLimit) {
+    console.log(id + ' moved to floor: ' + this.curFloor);
+    if(this.movementCount >= MAINTENANCE_LIMIT) {
       this.inService = false;
     }
     // TODO: Should entering maintenance mode cancel all calls / selections and send to floor 1?
@@ -172,6 +182,10 @@ class Elevator {
     }
   }
 
+  /**
+   * remove floor selection
+   * @param floorNum
+   */
   removeSelection(floorNum) {
     this.selections.remove(floorNum);
   }
@@ -179,10 +193,18 @@ class Elevator {
   /**
    * Handle actions on the floor we just reached (if any actions necessary)
    * Initiate move to next floor when done (if applicable)
+   * Door should be closed when processing this
    */
   processFloor() {
+    if(this.doorOpen) {
+      return;
+    }
+
+    // give the controller a chance to push a request to it
+    this.controller.beforeProcessFloor(this);
+
     if(this.hasCallRequest(this.curFloor, this.direction) || this.hasSelection(this.curFloor)) {
-      open();
+      this.open();
     }
 
     // do we have any calls / selections left?
@@ -207,9 +229,28 @@ class Elevator {
    * Open the door
    */
   open() {
+    // check if already open
+    if(this.doorOpen) {
+      return;
+    }
+
     console.log('Opening door to elevator: ' + this.id);
     this.removeCallRequest(this.curFloor, this.direction);
     this.removeSelection(this.curFloor);
+    this.doorOpen = true;
+
+    // wait for some amount of time and then close
+    setTimeout(()=>{this.close();}, DOOR_OPEN_TIME_MS);
+  }
+
+  close() {
+    // check if already closed
+    if(!this.doorOpen) {
+      return;
+    }
+
+    console.log('Closing door to elevator: ' + this.id);
+    this.doorOpen = false;
   }
 
   /**
