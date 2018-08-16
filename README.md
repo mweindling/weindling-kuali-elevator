@@ -1,3 +1,3 @@
 # Kuali Interview Assignment - Mark Weindling
 
-see js/main.js
+see js/test.js, js/elevator.js
