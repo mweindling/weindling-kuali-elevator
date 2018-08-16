@@ -6,7 +6,7 @@ This file contains 2 JS classes:
 * ElevatorController class
 * Elevator class
 
-Note that I think I may have misinterpreted the requirement slightly and made this a little more complicated than it was supposed to be.  I am treating this as a normal elevator (e.g. selection is made inside the elevator, and floor calls make a call in a given direction).  After re-reading, I realize the instructions may be indicating that the floor selection is actually made at the floor, not inside the elevator.  I apologize if this was a bad interpretation on my part... I think the general idea of the design is similar, though.
+Note that I think I may have misinterpreted the requirement slightly and made this a little more complicated than it was supposed to be.  I am treating this as a normal elevator (e.g. SELECTION is made inside the elevator, and floor CALLS are made with a given direction).  After re-reading, I realize the instructions may be indicating that the floor selection is actually made at the floor, not inside the elevator.  I apologize if this was a bad interpretation on my part... I think the general idea of the design is similar, though.  The main difference is that my code is assuming two forms of request... a SELECTION inside the elevator, or a CALL made from a floor (with a direction).
 
 I did not complete all of the coding... there are some functions that are missing / marked with TODOs.
 
