@@ -32,12 +32,43 @@ class ElevatorController {
     }
 
     // locate elevator closest (consider direction as well)
-    // TODO: Need a real algorithm here
-    let elevator =  availableElevators[0];
+    this.findClosesElevator(availableElevators, floorNum, direction);
+    let elevator =  this.findClosesElevator(availableElevators, floorNum, direction);
 
     // dispatch to elevator
     elevator.requestCall(floorNum, direction);
   }
+
+  /**
+   * Find the closest elevator to the given floor (considers direction as well, since elevators
+   * moving in the opposite direction need to service their requests then turn around).
+   * @param availableElevators
+   * @param floorNum
+   * @param direction
+   * @returns Elevator
+   */
+  findClosesElevator(availableElevators, floorNum, direction) {
+    let closest = null;
+    let minDistance = null;
+    availableElevators.forEach(e=>{
+      let distance;
+      if(e.direction == null || e.direction == direction) {
+        distance = Math.abs(e.floorNum - floorNum);
+      }
+      else {
+        // wrong direction... need to go to furthest request then turn around
+        // TODO: implement this part
+      }
+
+      // is it the closest?
+      if(minDistance == null || distance < minDistance) {
+        minDistance = distance;
+        closest = e;
+      }
+    });
+    return closest;
+  }
+
 
   /**
    * Find list of available elevators
@@ -47,8 +78,13 @@ class ElevatorController {
   }
 
   beforeProcessFloor(elevator) {
-    // TODO: check if there are pending calls to this floor (so we can intercept since the elevator is there anyway)
+    // TODO: check if there are pending call requests to the floor that the elevator is on
+    // If there are, then we will move the call request to the elevator that initiated this
+    // callback (because this means its about to arrive at the floor)
+    // Since this happens before the floor is processed, the elevator should stop and open,
+    // thus satisfying the call request.
   }
+
 }
 
 
