@@ -17,7 +17,8 @@ class ElevatorController {
     // initialize elevators
     this.elevators = [];
     for (let n = 1; n <= numElevators; n++) {
-      this.elevators[this.elevators.length] = new Elevator(this);
+      let id = 'elevator-' + n;
+      this.elevators[this.elevators.length] = new Elevator(this, id);
     }
   }
 
@@ -51,13 +52,17 @@ class ElevatorController {
  */
 class Elevator {
 
-  Elevator(controller) {
+  const maintenanceLimit = 100;
+
+  Elevator(controller, id) {
+    this.id = id;
     this.controller = controller;
     this.inService = true;
     this.callRequests = [];  // TODO: I think we can remove this and just check the elevators for call requests?
     this.curFloor = 1;
     this.direction = null;
     this.selections = new Set();
+    this.movementCount = 0;
   }
 
   /**
@@ -104,6 +109,15 @@ class Elevator {
     return false;
   }
 
+  move(dir) {
+    if(dir == 'up') {
+      this.moveUp();
+    }
+    else if(dir == 'down') {
+      this.moveDown();
+    }
+  }
+
   /**
    * Move the elevator up a floor (if we can)
    */
@@ -114,6 +128,7 @@ class Elevator {
     } else {
       this.curFloor++;
       this.direction = 'up';
+      this.tickMovement();
     }
     this.processFloor();
   }
@@ -128,8 +143,22 @@ class Elevator {
     } else {
       this.curFloor--;
       this.direction = 'down';
+      this.tickMovement();
     }
     this.processFloor();
+  }
+
+  /**
+   * Add to movement count and check maintenance schedule
+   */
+  tickMovement() {
+    this.movementCount++;
+    if(this.movementCount >= maintenanceLimit) {
+      this.inService = false;
+    }
+    // TODO: Should entering maintenance mode cancel all calls / selections and send to floor 1?
+    // Currently we just stop accepting new requests
+
   }
 
   /**
@@ -137,7 +166,10 @@ class Elevator {
    * @param floorNum
    */
   addSelection(floorNum) {
-    this.selections.add(floorNum);
+    // only allow new selections if in service
+    if(this.isInService()) {
+      this.selections.add(floorNum);
+    }
   }
 
   removeSelection(floorNum) {
@@ -149,17 +181,44 @@ class Elevator {
    * Initiate move to next floor when done (if applicable)
    */
   processFloor() {
-    let shouldOpen = false;
-    if(this.hasCallRequest(this.curFloor, this.direction)) {
-      shouldOpen = true;
-      this.removeCallRequest(this.curFloor, this.direction);
+    if(this.hasCallRequest(this.curFloor, this.direction) || this.hasSelection(this.curFloor)) {
+      open();
     }
-    if(this.hasSelection(this.curFloor)) {
-      shouldOpen = true;
-      this.removeSelection(this.curFloor);
+
+    // do we have any calls / selections left?
+    if(this.callRequests.length == 0 && this.selections.size == 0) {
+      this.processIdle();
     }
+
+    // do we have any more calls / selections in the current direction
+    else if(this.hasCallInDirection(this.direction) || this.hasSelectionInDirection(this.direction)) {
+      this.move(this.direction);
+    }
+
+    // still have more requests, but they are in the opposite direction
+    else {
+      this.direction = this.direction == 'up' ? 'down' : 'up';
+      this.move();
+    }
+
   }
 
+  /**
+   * Open the door
+   */
+  open() {
+    console.log('Opening door to elevator: ' + this.id);
+    this.removeCallRequest(this.curFloor, this.direction);
+    this.removeSelection(this.curFloor);
+  }
+
+  /**
+   * Handle action when enter idle state (no requests, no selections)
+   */
+  processIdle() {
+    // TODO: should we do something?  stay still for now
+    this.direction = null;
+  }
 
 
 }
