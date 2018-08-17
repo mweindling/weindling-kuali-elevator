@@ -1,6 +1,6 @@
-# Kuali Interview Assignment - Mark Weindling
+# Kuali Interview Assignment - Mark Weindling - UPDATED (POST CHALLENGE)
 
-see js/elevator.js:
+see js/elevator.js:, js/test.js
 
 This file contains 2 JS classes:
 * ElevatorController class
